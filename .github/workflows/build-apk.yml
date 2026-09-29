@@ -30,7 +30,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             git zip unzip \
-            autoconf libtool pkg-config \
+            autoconf libtool libltdl-dev pkg-config \
             zlib1g-dev \
             libncurses5-dev libncursesw5-dev \
             libtinfo6 \
@@ -41,11 +41,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install buildozer setuptools cython==0.29.34
+
       - name: Prepare python-for-android
         run: |
           buildozer android p4a -- --help
           P4A_DIR=$(find .buildozer/android/platform -type d -name "python-for-android" | head -n 1)
           rm -rf "$P4A_DIR/pythonforandroid/recipes/reportlab"
+
       - name: Build APK
         run: |
           buildozer -v android debug
@@ -56,4 +58,3 @@ jobs:
           name: Mi-Trabajo-APK
           path: bin/*.apk
           if-no-files-found: error
-          
