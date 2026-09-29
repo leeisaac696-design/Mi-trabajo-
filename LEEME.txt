@@ -1,0 +1,20 @@
+MI TRABAJO V5 - version mejorada
+
+Mejoras:
+- Viaje numerado automaticamente: Viaje 1, Viaje 2, etc.
+- Registro rapido con monto.
+- Historial mas compacto.
+- Reportes: Hoy, Ayer, Esta semana, Semana pasada, Este mes o Personalizado.
+- PDF ordenado por hora.
+- Copia de seguridad.
+- Edicion y borrado.
+- Conserva la base SQLite anterior.
+
+Instalacion:
+1. Cierra la app anterior.
+2. Haz una copia de seguridad.
+3. Sustituye SOLO main.py por este.
+4. Mantén mi_trabajo.db en la misma carpeta para conservar tus registros.
+5. Ejecuta main.py en Pydroid.
+
+Si quieres empezar desde cero, elimina mi_trabajo.db. Eso borra los registros.
