@@ -146,22 +146,42 @@ jobs:
         run: |
           buildozer -v android debug
 
-      - name: Verify ReportLab is inside APK
+      - name: Verify APK package
         run: |
           echo "APK generado:"
           ls -lh bin/*.apk
 
           echo ""
-          echo "Buscando ReportLab dentro del APK..."
+          echo "Revisando archivos internos del APK..."
 
-          unzip -l bin/*.apk | grep -i "reportlab" | head -30 || true
+          unzip -l bin/*.apk | grep -E "private.tar|libpybundle.so" || true
 
-          if unzip -l bin/*.apk | grep -qi "reportlab"; then
+          echo ""
+          echo "Extrayendo private.tar..."
+
+          rm -rf apk_check
+          mkdir -p apk_check
+
+          unzip -q bin/*.apk "assets/private.tar" -d apk_check || true
+
+          if [ -f apk_check/assets/private.tar ]; then
+            echo "private.tar encontrado."
+
             echo ""
-            echo "✅ REPORTLAB ESTA DENTRO DEL APK"
+            echo "Buscando ReportLab dentro de private.tar..."
+
+            tar -tf apk_check/assets/private.tar | grep -i "reportlab" | head -30 || true
           else
-            echo ""
-            echo "❌ REPORTLAB NO ESTA DENTRO DEL APK"
+            echo "Aviso: no se encontró assets/private.tar"
+          fi
+
+          echo ""
+          echo "Comprobando paquete Python de la aplicación..."
+
+          if unzip -l bin/*.apk | grep -qi "libpybundle.so"; then
+            echo "✅ EL APK CONTIENE EL PAQUETE PYTHON"
+          else
+            echo "❌ NO SE ENCONTRÓ libpybundle.so"
             exit 1
           fi
 
