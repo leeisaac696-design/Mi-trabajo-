@@ -24,7 +24,7 @@ except Exception:
     REPORTLAB_OK = False
 
 try:
-    from jnius import autoclass
+    from jnius import autoclass, cast
     ANDROID_OK = True
 except Exception:
     ANDROID_OK = False
@@ -34,13 +34,13 @@ DB_PATH = Path(__file__).with_name("mi_trabajo.db")
 
 class MiTrabajoApp(App):
     def build(self):
-        self.title = "Mi Trabajo"
+        self.title = "Taxpanda 🐼"
         self.create_db()
 
         root = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(9))
 
         header = BoxLayout(size_hint_y=None, height=dp(58), spacing=dp(8))
-        title = Label(text="MI TRABAJO", font_size=dp(23), bold=True,
+        title = Label(text="TAXPANDA 🐼", font_size=dp(23), bold=True,
                       halign="left", valign="middle")
         self.clock = Label(font_size=dp(13), halign="right", valign="middle")
         header.add_widget(title)
@@ -448,7 +448,7 @@ class MiTrabajoApp(App):
         y = H - 45
 
         c.setFont("Helvetica-Bold", 17)
-        c.drawString(45, y, "REPORTE DE TRABAJO")
+        c.drawString(45, y, "TAXPANDA 🐼 - REPORTE")
         y -= 22
         c.setFont("Helvetica", 10)
         c.drawString(45, y, f"Periodo: {d1.strftime('%d/%m/%Y')} al {d2.strftime('%d/%m/%Y')}")
@@ -509,11 +509,12 @@ class MiTrabajoApp(App):
                       f"Gasolina: ${grand[2]:.2f}   Otros: ${grand[3]:.2f}   Neto: ${grand[4]:.2f}")
         c.save()
 
+        self.last_pdf_uri = None
         if ANDROID_OK:
             try:
-                self.publish_pdf_to_downloads(str(out))
+                self.last_pdf_uri = self.publish_pdf_to_downloads(str(out))
             except Exception:
-                pass
+                self.last_pdf_uri = None
 
         return str(out)
 
@@ -535,8 +536,8 @@ class MiTrabajoApp(App):
             MediaColumns.RELATIVE_PATH,
             Environment.DIRECTORY_DOWNLOADS + "/Mi Trabajo"
         )
-        values.put(MediaColumns.IS_PENDING, 1)
-
+        # No usamos IS_PENDING: en algunos dispositivos/Pyjnius esta llamada
+        # termina intentando una sobrecarga Java con Double y provoca el error.
         uri = resolver.insert(Downloads.EXTERNAL_CONTENT_URI, values)
 
         if uri is None:
@@ -557,9 +558,7 @@ class MiTrabajoApp(App):
             finally:
                 output.close()
 
-            done = ContentValues()
-            done.put(MediaColumns.IS_PENDING, 0)
-            resolver.update(uri, done, None, None)
+            # El archivo queda visible directamente en Descargas.
             return uri
 
         except Exception:
@@ -577,70 +576,42 @@ class MiTrabajoApp(App):
             try:
                 PythonActivity = autoclass("org.kivy.android.PythonActivity")
                 Intent = autoclass("android.content.Intent")
-                MediaColumns = autoclass("android.provider.MediaStore$MediaColumns")
-                Downloads = autoclass("android.provider.MediaStore$Downloads")
-                Environment = autoclass("android.os.Environment")
 
                 activity = PythonActivity.mActivity
-                resolver = activity.getContentResolver()
 
-                file_name = Path(path).name
-
-                projection = [
-                    MediaColumns._ID,
-                    MediaColumns.DISPLAY_NAME
-                ]
-                selection = (
-                    MediaColumns.DISPLAY_NAME + "=? AND " +
-                    MediaColumns.RELATIVE_PATH + "=?"
-                )
-                selection_args = [
-                    file_name,
-                    Environment.DIRECTORY_DOWNLOADS + "/Mi Trabajo/"
-                ]
-
-                cursor = resolver.query(
-                    Downloads.EXTERNAL_CONTENT_URI,
-                    projection,
-                    selection,
-                    selection_args,
-                    None
-                )
-
-                uri = None
-                if cursor is not None:
-                    try:
-                        if cursor.moveToFirst():
-                            id_index = cursor.getColumnIndex(MediaColumns._ID)
-                            media_id = cursor.getLong(id_index)
-                            uri = Downloads.getContentUri("external", media_id)
-                    finally:
-                        cursor.close()
-
+                # Usamos directamente el URI que devolvio MediaStore al guardar
+                # el PDF. Asi evitamos volver a buscar el archivo y evitamos
+                # la conversion problematica de IDs de MediaStore.
+                uri = getattr(self, "last_pdf_uri", None)
                 if uri is None:
                     uri = self.publish_pdf_to_downloads(path)
 
+                if uri is None:
+                    raise RuntimeError("No se obtuvo el URI del PDF en Descargas.")
+
                 intent = Intent(Intent.ACTION_SEND)
                 intent.setType("application/pdf")
-                intent.putExtra(Intent.EXTRA_STREAM, uri)
+                stream_parcelable = cast("android.os.Parcelable", uri)
+                intent.putExtra(Intent.EXTRA_STREAM, stream_parcelable)
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-                chooser = Intent.createChooser(intent, "Compartir reporte")
-                chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                activity.startActivity(chooser)
+                # Dejamos que Android muestre directamente el selector de aplicaciones.
+                # Evitamos Intent.createChooser(), cuya sobrecarga de Pyjnius
+                # estaba provocando el error mostrado en el telefono.
+                activity.startActivity(intent)
                 return
 
             except Exception as exc:
                 self.message(
                     "No se pudo compartir",
-                    "El PDF sí fue generado.\n\n"
+                    "El PDF si fue generado.\n\n"
                     "Puedes encontrarlo en:\n"
                     "Descargas/Mi Trabajo\n\n"
                     f"Detalle: {exc}"
                 )
                 return
 
-        self.message("PDF listo", f"El PDF se guardó en:\n{path}")
+        self.message("PDF listo", f"El PDF se guardo en:\n{path}")
 
     def backup_database(self):
         folder = Path(self.user_data_dir) / "backups"
