@@ -1,6 +1,6 @@
 [app]
 # (str) Title of your application
-title = Mi Trabajo
+title = TaxPanda🐼
 
 # (str) Package name
 package.name = mitrabajo
