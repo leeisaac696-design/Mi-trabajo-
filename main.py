@@ -441,6 +441,8 @@ class MiTrabajoApp(App):
         pop.open()
 
     def make_pdf(self, d1, d2):
+        # Primero creamos el PDF en el almacenamiento privado de la app.
+        # Después lo publicamos en Descargas/Mi Trabajo mediante MediaStore.
         out = Path(self.user_data_dir) / f"reporte_{d1}_{d2}.pdf"
         c = canvas.Canvas(str(out), pagesize=letter)
         W, H = letter
@@ -507,33 +509,179 @@ class MiTrabajoApp(App):
                       f"Viajes: {grand[0]}   Cobrado: ${grand[1]:.2f}   "
                       f"Gasolina: ${grand[2]:.2f}   Otros: ${grand[3]:.2f}   Neto: ${grand[4]:.2f}")
         c.save()
+
+        # En Android, poner el PDF en Descargas/Mi Trabajo usando MediaStore.
+        # Esto evita depender de FileProvider y hace que el archivo sea visible
+        # para el usuario y compartible por las aplicaciones instaladas.
+        if ANDROID_OK:
+            try:
+                self.publish_pdf_to_downloads(str(out))
+            except Exception:
+                # El PDF privado sigue existiendo aunque la publicación falle.
+                pass
+
         return str(out)
+
+    def publish_pdf_to_downloads(self, path):
+        PythonActivity = autoclass("org.kivy.android.PythonActivity")
+        ContentValues = autoclass("android.content.ContentValues")
+        MediaStore = autoclass("android.provider.MediaStore")
+        Environment = autoclass("android.os.Environment")
+
+        activity = PythonActivity.mActivity
+        resolver = activity.getContentResolver()
+
+        values = ContentValues()
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, Path(path).name)
+        values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+        values.put(
+            MediaStore.MediaColumns.RELATIVE_PATH,
+            Environment.DIRECTORY_DOWNLOADS + "/Mi Trabajo"
+        )
+        values.put(MediaStore.MediaColumns.IS_PENDING, 1)
+
+        collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        uri = resolver.insert(collection, values)
+
+        if uri is None:
+            raise RuntimeError("Android no pudo crear el archivo en Descargas.")
+
+        try:
+            output = resolver.openOutputStream(uri)
+            if output is None:
+                raise RuntimeError("No se pudo abrir el archivo de destino.")
+
+            try:
+                with open(path, "rb") as source:
+                    while True:
+                        chunk = source.read(64 * 1024)
+                        if not chunk:
+                            break
+                        output.write(bytearray(chunk))
+            finally:
+                output.close()
+
+            done = ContentValues()
+            done.put(MediaStore.MediaColumns.IS_PENDING, 0)
+            resolver.update(uri, done, None, None)
+
+            return str(uri)
+
+        except Exception:
+            try:
+                resolver.delete(uri, None, None)
+            except Exception:
+                pass
+            raise
 
     def share_pdf(self, path):
         if not path:
             return
+
         if ANDROID_OK:
             try:
+                # Android 10+ permite compartir directamente desde MediaStore.
                 PythonActivity = autoclass("org.kivy.android.PythonActivity")
                 Intent = autoclass("android.content.Intent")
-                FileProvider = autoclass("androidx.core.content.FileProvider")
+                ContentValues = autoclass("android.content.ContentValues")
+                MediaStore = autoclass("android.provider.MediaStore")
+                Environment = autoclass("android.os.Environment")
+                ClipData = autoclass("android.content.ClipData")
+
                 activity = PythonActivity.mActivity
+                resolver = activity.getContentResolver()
+
+                file_name = Path(path).name
+
+                # Buscar el PDF dentro de Descargas/Mi Trabajo.
+                projection = [
+                    MediaStore.MediaColumns._ID,
+                    MediaStore.MediaColumns.DISPLAY_NAME
+                ]
+                selection = (
+                    MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " +
+                    MediaStore.MediaColumns.RELATIVE_PATH + "=?"
+                )
+                selection_args = [
+                    file_name,
+                    Environment.DIRECTORY_DOWNLOADS + "/Mi Trabajo/"
+                ]
+
+                cursor = resolver.query(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    projection,
+                    selection,
+                    selection_args,
+                    None
+                )
+
+                uri = None
+                if cursor is not None:
+                    try:
+                        if cursor.moveToFirst():
+                            id_index = cursor.getColumnIndex(
+                                MediaStore.MediaColumns._ID
+                            )
+                            media_id = cursor.getLong(id_index)
+                            uri = MediaStore.Downloads.getContentUri(
+                                "external", media_id
+                            )
+                    finally:
+                        cursor.close()
+
+                # Si todavía no está publicado, publicarlo ahora.
+                if uri is None:
+                    self.publish_pdf_to_downloads(path)
+
+                    cursor = resolver.query(
+                        MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                        projection,
+                        selection,
+                        selection_args,
+                        None
+                    )
+                    if cursor is not None:
+                        try:
+                            if cursor.moveToFirst():
+                                id_index = cursor.getColumnIndex(
+                                    MediaStore.MediaColumns._ID
+                                )
+                                media_id = cursor.getLong(id_index)
+                                uri = MediaStore.Downloads.getContentUri(
+                                    "external", media_id
+                                )
+                        finally:
+                            cursor.close()
+
+                if uri is None:
+                    raise RuntimeError("No se encontró el PDF en Descargas.")
+
                 intent = Intent(Intent.ACTION_SEND)
                 intent.setType("application/pdf")
-                # Some Pydroid environments cannot expose a FileProvider automatically.
-                # If sharing is unavailable, the PDF remains saved and can be shared manually.
-                JavaFile = autoclass("java.io.File")
-                uri = FileProvider.getUriForFile(
-                    activity, activity.getPackageName() + ".fileprovider", JavaFile(path)
-                )
                 intent.putExtra(Intent.EXTRA_STREAM, uri)
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                activity.startActivity(Intent.createChooser(intent, "Compartir reporte"))
-                return
-            except Exception:
-                pass
 
-        self.message("PDF listo", f"El PDF se guardo en:\n{path}")
+                # Ayuda a Android a conceder el permiso de lectura a la app
+                # elegida desde el menú de compartir.
+                clip = ClipData.newRawUri("Reporte PDF", uri)
+                intent.setClipData(clip)
+
+                chooser = Intent.createChooser(intent, "Compartir reporte")
+                chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                activity.startActivity(chooser)
+                return
+
+            except Exception as exc:
+                self.message(
+                    "No se pudo compartir",
+                    "El PDF sí fue generado.\n\n"
+                    "Puedes encontrarlo en:\n"
+                    "Descargas/Mi Trabajo\n\n"
+                    f"Detalle: {exc}"
+                )
+                return
+
+        self.message("PDF listo", f"El PDF se guardó en:\n{path}")
 
     def backup_database(self):
         folder = Path(self.user_data_dir) / "backups"
