@@ -580,7 +580,6 @@ class MiTrabajoApp(App):
                 MediaColumns = autoclass("android.provider.MediaStore$MediaColumns")
                 Downloads = autoclass("android.provider.MediaStore$Downloads")
                 Environment = autoclass("android.os.Environment")
-                ClipData = autoclass("android.content.ClipData")
 
                 activity = PythonActivity.mActivity
                 resolver = activity.getContentResolver()
@@ -625,7 +624,6 @@ class MiTrabajoApp(App):
                 intent.setType("application/pdf")
                 intent.putExtra(Intent.EXTRA_STREAM, uri)
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                intent.setClipData(ClipData.newRawUri("Reporte PDF", uri))
 
                 chooser = Intent.createChooser(intent, "Compartir reporte")
                 chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
