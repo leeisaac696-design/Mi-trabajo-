@@ -1,6 +1,6 @@
 [app]
 # (str) Title of your application
-title = TaxPanda🐼
+title = Taxpanda
 
 # (str) Package name
 package.name = mitrabajo
@@ -12,10 +12,10 @@ package.domain = org.mitrabajo
 source.dir = .
 
 # (list) Source files to include
-source.include_exts = py,png,jpg,jpeg,kv,atlas,db
+source.include_exts = py,png,jpg,jpeg,kv,atlas,db,json,ttf,otf
 
 # (str) Application version
-version = 1.0.0
+version = 1.0.1
 
 # (list) Application requirements
 requirements = python3,kivy,pyjnius,reportlab
@@ -30,7 +30,7 @@ fullscreen = 0
 # presplash.filename = %(source.dir)s/data/presplash.png
 
 # (str) Icon of the application
-# icon.filename = %(source.dir)s/data/icon.png
+icon.filename = %(source.dir)s/taxpanda_logo.png
 
 # (str) Supported Android archs
 android.archs = arm64-v8a
