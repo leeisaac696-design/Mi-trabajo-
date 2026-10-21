@@ -21,7 +21,6 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
-from kivy.uix.image import Image as KivyImage
 
 try:
     from reportlab.lib.pagesizes import letter
@@ -71,7 +70,7 @@ TEXT = {
         "other_type": "Tipo de gasto", "wash": "Lavado", "repair": "Reparación", "oil": "Aceite",
         "food": "Comida", "toll": "Peaje", "other_option": "Otro", "select_language": "Selecciona el idioma",
         "select_theme": "Selecciona la apariencia", "edit_backup_note": "La copia incluye tus registros.",
-        "cash": "Caja", "reset_test_data": "Reiniciar registros de prueba", "reset_confirm": "Esto borrará los viajes, gastos, aportes, recuperaciones, fondos de apertura y estados diarios. No se puede deshacer. ¿Quieres continuar?", "reset_done": "Los registros de prueba se borraron. La configuración se conservó.", "reset_error": "No se pudieron borrar los registros.", "initial_change": "Fondo de apertura", "pocket_contributions": "Aportes personales", "recovered": "Reembolsos realizados", "pending_recovery": "Saldo por reembolsar", "set_change": "Configurar cambio inicial", "register_recovery": "Registrar recuperación", "recovery_amount": "Importe a recuperar", "payment_source": "Fuente de los fondos", "my_pocket": "Fondos personales", "cash_money": "Ingresos por viajes", "change_note": "Dinero para dar vuelto. No cuenta como ganancia.", "operating_fund": "Fondo del propietario", "own_money": "Fondos personales", "initial_source": "Fuente del fondo de apertura", "recovery_note": "La recuperación devuelve tu aporte; no es una ganancia nueva.", "cash_saved": "Cambio inicial guardado.", "recovery_saved": "Recuperación registrada.", "no_pending": "No tienes aportes pendientes de recuperar.",
+        "cash": "Caja", "reset_test_data": "Reiniciar registros de prueba", "reset_confirm": "Esto borrará los viajes, gastos, aportes, recuperaciones, fondos de apertura y estados diarios. No se puede deshacer. ¿Quieres continuar?", "reset_done": "Los registros de prueba se borraron. La configuración se conservó.", "reset_error": "No se pudieron borrar los registros.", "initial_change": "Fondo de apertura", "pocket_contributions": "Aportes personales", "recovered": "Reembolsos realizados", "pending_recovery": "Saldo por reembolsar", "set_change": "Configurar cambio inicial", "register_recovery": "Registrar recuperación", "recovery_amount": "Importe a recuperar", "payment_source": "Fuente de los fondos", "my_pocket": "Fondos personales", "cash_money": "Ingresos por viajes", "change_note": "Dinero para dar vuelto. No cuenta como ganancia.", "operating_fund": "Dinero del jefe", "own_money": "Fondos personales", "initial_source": "Fuente del fondo de apertura", "recovery_note": "La recuperación devuelve tu aporte; no es una ganancia nueva.", "cash_saved": "Cambio inicial guardado.", "recovery_saved": "Recuperación registrada.", "no_pending": "No tienes aportes pendientes de recuperar.",
         "day_status": "Estado del día", "save_day_status": "Guardar estado", "worked": "Trabajé", "not_worked": "No trabajé", "rest_day": "Descanso", "unregistered": "Sin registrar", "pending_day": "Pendiente", "status_saved": "Estado del día guardado.",
     },
     "en": {
@@ -98,7 +97,7 @@ TEXT = {
         "share_error": "Could not open the share menu. The PDF was generated.", "other_type": "Expense type", "wash": "Car wash",
         "repair": "Repair", "oil": "Oil", "food": "Food", "toll": "Toll", "other_option": "Other",
         "select_language": "Choose language", "select_theme": "Choose appearance", "edit_backup_note": "The backup includes your records.",
-        "cash": "Cash box", "reset_test_data": "Reset test records", "reset_confirm": "This will delete trips, expenses, contributions, reimbursements, opening funds, and daily statuses. This cannot be undone. Continue?", "reset_done": "Test records deleted. Settings were preserved.", "reset_error": "Could not delete the records.", "initial_change": "Opening fund", "pocket_contributions": "Personal contributions", "recovered": "Reimbursements made", "pending_recovery": "Balance to reimburse", "set_change": "Set starting change", "register_recovery": "Register reimbursement", "recovery_amount": "Amount to reimburse", "payment_source": "Funding source", "my_pocket": "Personal funds", "cash_money": "Trip income", "change_note": "Money for giving change. It is not earnings.", "operating_fund": "Owner fund", "own_money": "Personal funds", "initial_source": "Opening-fund source", "recovery_note": "Reimbursement returns your contribution; it is not new profit.", "cash_saved": "Starting change saved.", "recovery_saved": "Reimbursement recorded.", "no_pending": "You have no contributions awaiting reimbursement.",
+        "cash": "Cash box", "reset_test_data": "Reset test records", "reset_confirm": "This will delete trips, expenses, contributions, reimbursements, opening funds, and daily statuses. This cannot be undone. Continue?", "reset_done": "Test records deleted. Settings were preserved.", "reset_error": "Could not delete the records.", "initial_change": "Opening fund", "pocket_contributions": "Personal contributions", "recovered": "Reimbursements made", "pending_recovery": "Balance to reimburse", "set_change": "Set starting change", "register_recovery": "Register reimbursement", "recovery_amount": "Amount to reimburse", "payment_source": "Funding source", "my_pocket": "Personal funds", "cash_money": "Trip income", "change_note": "Money for giving change. It is not earnings.", "operating_fund": "Boss money", "own_money": "Personal funds", "initial_source": "Opening-fund source", "recovery_note": "Reimbursement returns your contribution; it is not new profit.", "cash_saved": "Starting change saved.", "recovery_saved": "Reimbursement recorded.", "no_pending": "You have no contributions awaiting reimbursement.",
         "day_status": "Day status", "save_day_status": "Save status", "worked": "Worked", "not_worked": "Did not work", "rest_day": "Day off", "unregistered": "Not marked", "pending_day": "Pending", "status_saved": "Day status saved.",
     }
 }
@@ -245,11 +244,7 @@ class TaxpandaApp(App):
         root.spacing = dp(5)
 
         header = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(8))
-        logo_path = Path(__file__).with_name("taxpanda_logo.png")
-        if logo_path.exists():
-            logo = KivyImage(source=str(logo_path), size_hint=(None, 1), width=dp(42), allow_stretch=True, keep_ratio=True)
-            header.add_widget(logo)
-        title = self.label("Taxpanda", 22, True, self.colors["primary"], halign="left", valign="middle")
+        title = self.label("TAXPANDA", 22, True, self.colors["primary"], halign="left", valign="middle")
         title.size_hint_x = 1
         header.add_widget(title)
         header.add_widget(self.button("Ajustes", self.show_settings, height=42, font_size=12))
@@ -362,7 +357,17 @@ class TaxpandaApp(App):
         for txt,fn in [(self.t("home"),self.show_home),(self.t("history"),self.show_history),(self.t("reports"),self.show_reports),(self.t("cash"),self.show_cash),(self.t("settings"),self.show_settings)]:
             nav.add_widget(self.button(txt,fn,self.colors["surface"],self.colors["text"],56,10))
         root.add_widget(nav)
-        self.root_layout=root
+        self.root_layout = root
+        # Al reconstruir una pantalla durante la ejecución, sustituir también
+        # el widget raíz visible; cambiar solo root_layout no actualiza la ventana.
+        if getattr(self, "root", None) is not None and self.root is not root:
+            from kivy.core.window import Window
+            old_root = self.root
+            if old_root.parent is not None:
+                old_root.parent.remove_widget(old_root)
+            self.root = root
+            if root.parent is None:
+                Window.add_widget(root)
         self.update_screen()
 
     def next_trip_number(self, day=None):
@@ -674,10 +679,10 @@ class TaxpandaApp(App):
                     f"Gasolina y otros gastos: ${all_expenses:.2f}\n"
                     f"Gastos pagados con dinero de los viajes: ${cash_expenses:.2f}\n"
                     f"Gastos pagados con dinero personal: ${pocket_expenses:.2f}\n"
-                    f"Gastos cubiertos por el propietario: ${owner_expenses:.2f}\n"
+                    f"Gastos pagados con dinero del jefe: ${owner_expenses:.2f}\n"
                     f"Reembolsos tomados de caja: ${recovered:.2f}\n"
-                    f"Fondos recibidos del propietario: ${owner_fund:.2f}\n"
-                    f"Saldo del fondo del propietario: ${owner_remaining:.2f}\n"
+                    f"Fondo del jefe recibido: ${owner_fund:.2f}\n"
+                    f"Fondo del jefe restante: ${owner_remaining:.2f}\n"
                     f"Aportes personales pendientes: ${pending:.2f}\n\n"
                     f"GANANCIA NETA: ${net:.2f}\n"
                     f"DINERO DE VIAJES A ENTREGAR: ${handover:.2f}\n"
@@ -690,10 +695,10 @@ class TaxpandaApp(App):
                     f"Fuel and other expenses: ${all_expenses:.2f}\n"
                     f"Expenses paid with trip money: ${cash_expenses:.2f}\n"
                     f"Expenses paid with personal money: ${pocket_expenses:.2f}\n"
-                    f"Expenses covered by owner: ${owner_expenses:.2f}\n"
+                    f"Expenses paid with boss money: ${owner_expenses:.2f}\n"
                     f"Reimbursements from cash box: ${recovered:.2f}\n"
-                    f"Owner funds received: ${owner_fund:.2f}\n"
-                    f"Owner fund balance: ${owner_remaining:.2f}\n"
+                    f"Boss fund received: ${owner_fund:.2f}\n"
+                    f"Boss fund remaining: ${owner_remaining:.2f}\n"
                     f"Personal contributions pending: ${pending:.2f}\n\n"
                     f"NET EARNINGS: ${net:.2f}\n"
                     f"TRIP MONEY TO HAND OVER: ${handover:.2f}\n"
@@ -1244,11 +1249,7 @@ class TaxpandaApp(App):
                 self.message(self.t("reset_test_data"), self.t("reset_error"))
                 return
             pop.dismiss()
-            # Actualiza las etiquetas que ya están visibles en Inicio.
-            # Reconstruir show_home() aquí reemplazaba las referencias de las
-            # etiquetas sin sustituir la raíz visible, por eso los datos viejos
-            # permanecían hasta cerrar y volver a abrir la app.
-            self.update_screen()
+            self.show_home()
             self.message(self.t("reset_test_data"), self.t("reset_done"))
 
         short_confirm = "Reiniciar" if self.lang == "es" else "Reset"
